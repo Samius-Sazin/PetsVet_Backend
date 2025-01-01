@@ -172,7 +172,7 @@ async function run() {
             res.status(500).send('An error occurred while uploading files.');
         }
 
-        // delete a product/article/qna from (DB + Multer) with it's id
+        // End point for delete a product/article/qna  with it's id from DB & Multer
         app.post('/delete-item', async (req, res) => {
             const data = req.body.data; // data is an object that contains _id, type & images
 
