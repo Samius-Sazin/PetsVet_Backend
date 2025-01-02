@@ -236,6 +236,18 @@ async function run() {
             res.send(products);
         })
 
+        // get top 5 Q&A with highest upvote from DB
+        app.get('/get-faqs', async (req, res) => {
+            const options = {
+                sort: { upvote: -1 }, // Sort by upvote in descending order
+                limit: 5, // Get only the top 5 documents
+            };
+
+            const cursor = qnaCollection.find({}, options);
+            const faqs = await cursor.toArray();
+            res.send(faqs);
+        })
+
     }
     finally {
         // await client.close();
