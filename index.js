@@ -84,6 +84,7 @@ async function run() {
         const productsCollection = database.collection("products");
         const articlesCollection = database.collection("articles");
         const qnaCollection = database.collection("qna");
+        const reviews_ratingsCollection = database.collection("reviews_ratings");
 
 
         // Endpoint for Single Image Upload (Multer + DB) (article, products, qna)
@@ -246,6 +247,61 @@ async function run() {
             const cursor = qnaCollection.find({}, options);
             const faqs = await cursor.toArray();
             res.send(faqs);
+        })
+
+        // set user information to DB
+        app.put('/set-user', async (req, res) => {
+            try {
+                const data = req.body;
+
+                const filter = { email: data.email };
+                const updateData = { $set: data }; // Fields to update or insert
+                const options = { upsert: true }; // Insert the document if it doesn't exist
+
+                const result = await usersCollection.updateOne(filter, updateData, options);
+                res.send(result);
+            }
+            catch (error) {
+                res.status(500).json({ error: "MongoDB: Error in saving user data to DB" });
+            }
+        })
+
+        // get-reviews from DB
+        app.get('/get-reviews', async (req, res) => {
+            try {
+                // get reviews
+                const options = {
+                    sort: { rating: -1 }, // Sort by upvote in descending order
+                    limit: 20, // Get only the top 5 documents
+                };
+                const cursor = reviews_ratingsCollection.find({}, options);
+                const reviews = await cursor.toArray();
+
+                const updatedReviews = [];
+                await Promise.all(reviews.map(async (review) => {
+                    // get users who reviewed
+                    const query = { _id: new ObjectId(review.userId) };
+                    const user = await usersCollection.findOne(query);
+                    
+                    // get product which have benn reviewed
+                    const query2 = { _id: new ObjectId(review.productId) };
+                    const product = await productsCollection.findOne(query2);
+                    
+                    if (user && product) {
+                        review.displayName = user.displayName;
+                        review.photoURL = user.photoURL;
+
+                        review.productTitle = product.title;
+                        review.productImages = product.images;
+                        updatedReviews.push(review);
+                    }
+                }));
+
+                res.send(updatedReviews);
+            }
+            catch (error) {
+                res.status(500).json({ error: "MongoDB: Error in fetching reviews from DB" });
+            }
         })
 
     }
